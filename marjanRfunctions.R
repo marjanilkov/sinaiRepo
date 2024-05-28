@@ -209,3 +209,37 @@ depTableToNamesList = function(deps, FC.cutoff = 1.2, p.val.cutoff = 0.05)
   }
   return(deps.res)
 }
+
+# Plot overlap significance matrix
+titleText = "CSF vs Brain subtypes"
+ggplot(x, aes(Var1, Var2, fill= p.val)) + 
+  geom_tile()+
+  scale_fill_gradientn(name = "-log10(p)",
+                       colours = c("white",rev(heat.colors(50))))+ # the 0 is
+  # white and the rest of the colors are the same we use in the adjacency matrix 
+  # but reversed
+  geom_tile(color = "black",
+            lwd = .5,
+            linetype = 1) +
+  # We draw two rectangles to outline the up and down regulated intersections
+  # geom_rect(aes(xmin = 0.5, xmax = 5.5, ymin = 0.5, ymax = 5.5), 
+  #           fill = "blue", alpha = 0., color = "blue", linewidth = 2)+
+  # geom_rect(aes(xmin = 5.5, xmax = 10.5, ymin = 5.5, ymax = 10.5), 
+  #           fill = "red", alpha = 0., color = "red", linewidth = 2)+
+  # # theme_void()+
+  coord_fixed()+
+  theme(legend.key.size = unit(2, 'cm'), #change legend key size
+        legend.key.height = unit(2, 'cm'), #change legend key height
+        legend.key.width = unit(2, 'cm'), #change legend key width
+        legend.title = element_text(size=50), #change legend title font size
+        legend.text = element_text(size=50),
+        plot.title = element_text(size=50),
+        axis.text.x = element_text(face="bold", color="black", 
+                                   size=34, angle = 90,
+                                   hjust = 0.3,
+                                   vjust = 0.2,),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y = element_text(face="bold", color="black", 
+                                   size=34))+
+  ggtitle(titleText)
