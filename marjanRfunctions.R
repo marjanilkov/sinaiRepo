@@ -21,12 +21,42 @@ uniqList = function(listObj){
   return(aunique)
 }
 ################################################################################
-# The intersect() function takes ONLY 2 objects in a list and returns their intersection
-# this function uses the amazing function Reduce in R to find the intersect of 
-# multiple sets-all of them at once 
+# A function to find all the unique elements in each list object that appear in
+# that particular object and in no other on the list. This one uses pure elements not like the one before
+
+uniqListPURE = function(listObj){
+  aunique = list()
+  for (i in 1:length(listObj))
+  {
+    asub = (listObj[[i]]) # all the elements in the subtype
+    tmp1 = listObj[-i]# all the unique elements in all 
+    # the other subtypes
+    for(j in names(tmp1))
+    {
+      tmp1[[j]] = (tmp1[[j]])
+    }
+    bsub = unique(unlist(tmp1)) 
+    aunique[[paste(names(listObj)[i], ".uniq", sep = "")]] = setdiff(asub,bsub) # a set of unique genes that appear only in the 
+    # first subtype and in no other 
+  }
+  return(aunique)
+}
+################################################################################
+# The intersect() function finds the pairwise intersections between all vectors in a list
+# and returns another list with the results
 multiIntersect = function(listObj){
-  tmp1 = Reduce(intersect, listObj)
-  return(tmp1)
+  intersectList = list()
+  for (i in names(listObj))
+  {
+    for (j in names(listObj))
+    {
+      if(i!=j)
+      {
+        intersectList[[paste(i,j, sep = ".")]] = intersect(listObj[[i]], listObj[[j]])
+      }
+    }
+  }
+  return(intersectList)
 }
 ################################################################################
 
@@ -177,20 +207,20 @@ SuperTestOnlySignificant = function(sTest)
   colnames(z)[1] = "p.val"
   z = z[,c("setOverlap", "p.val")]
   
-  tmp1.pval = tibble::deframe(z) # from dataframe to named vector
-  sTest$P.value = tmp1.pval
+  tmp2.pval = tibble::deframe(z) # from dataframe to named vector
+  sTest$P.value = tmp2.pval
   # expected overlap
   overlap.sizes = sTest$overlap.sizes[z$setOverlap]
   P.value = sTest$P.value[z$setOverlap]
-  overlap.Expected = sTest$overlap.expected[z$setOverlap]
+  overlap.expected = sTest$overlap.expected[z$setOverlap]
   
   sTest1 = sTest
   
   sTest1$overlap.sizes = overlap.sizes
   sTest1$P.value = P.value
-  sTest1$overlap.Expected = overlap.Expected
+  sTest1$overlap.expected = overlap.expected
   }
-  return(sTest)
+  return(sTest1)
 }
 
 # A function to take the DEGs split by contrast from a list and extract the names 
@@ -204,42 +234,57 @@ depTableToNamesList = function(deps, FC.cutoff = 1.2, p.val.cutoff = 0.05)
     tmp1 = deps[[i]]
     tmp1.u = rownames(tmp1[tmp1$logFC > log2(FC.cutoff) & tmp1$adj.P.Val<p.val.cutoff,])
     tmp1.d = rownames(tmp1[tmp1$logFC < -log2(FC.cutoff) & tmp1$adj.P.Val<p.val.cutoff,])
-    deps.res[[paste(i, ".UP", sep = "")]] = tmp1.u
-    deps.res[[paste(i, ".DOWN", sep = "")]] = tmp1.d
+    deps.res[[paste(i, ".up", sep = "")]] = tmp1.u
+    deps.res[[paste(i, ".dn", sep = "")]] = tmp1.d
+  }
+  return(deps.res)
+}
+# A function to take the DEGs split by contrast from a list and extract the names 
+# of the DEGs according to p.cutoff and FC cutoff and directionality
+
+depTableToNamesListNOadjPVAL = function(deps, FC.cutoff = 1.2, p.val.cutoff = 0.05)
+{
+  deps.res = list()
+  for (i in names(deps))
+  {
+    tmp1 = deps[[i]]
+    tmp1.u = rownames(tmp1[tmp1$logFC > log2(FC.cutoff) & tmp1$P.Value<p.val.cutoff,])
+    tmp1.d = rownames(tmp1[tmp1$logFC < -log2(FC.cutoff) & tmp1$P.Value<p.val.cutoff,])
+    deps.res[[paste(i, ".up", sep = "")]] = tmp1.u
+    deps.res[[paste(i, ".dn", sep = "")]] = tmp1.d
+  }
+  return(deps.res)
+}
+# The same function as depTableToNamesList() but the DEGs are not split by directionality
+depTableToNamesList.NO.DIR = function(deps, FC.cutoff = 1.2, p.val.cutoff = 0.05)
+{
+  deps.res = list()
+  for (i in names(deps))
+  {
+    tmp1 = deps[[i]]
+    tmp1 = rownames(tmp1[abs(tmp1$logFC) > log2(FC.cutoff) & tmp1$adj.P.Val<p.val.cutoff,])
+    deps.res[[i]] = tmp1
   }
   return(deps.res)
 }
 
-# Plot overlap significance matrix
-titleText = "CSF vs Brain subtypes"
-ggplot(x, aes(Var1, Var2, fill= p.val)) + 
-  geom_tile()+
-  scale_fill_gradientn(name = "-log10(p)",
-                       colours = c("white",rev(heat.colors(50))))+ # the 0 is
-  # white and the rest of the colors are the same we use in the adjacency matrix 
-  # but reversed
-  geom_tile(color = "black",
-            lwd = .5,
-            linetype = 1) +
-  # We draw two rectangles to outline the up and down regulated intersections
-  # geom_rect(aes(xmin = 0.5, xmax = 5.5, ymin = 0.5, ymax = 5.5), 
-  #           fill = "blue", alpha = 0., color = "blue", linewidth = 2)+
-  # geom_rect(aes(xmin = 5.5, xmax = 10.5, ymin = 5.5, ymax = 10.5), 
-  #           fill = "red", alpha = 0., color = "red", linewidth = 2)+
-  # # theme_void()+
-  coord_fixed()+
-  theme(legend.key.size = unit(2, 'cm'), #change legend key size
-        legend.key.height = unit(2, 'cm'), #change legend key height
-        legend.key.width = unit(2, 'cm'), #change legend key width
-        legend.title = element_text(size=50), #change legend title font size
-        legend.text = element_text(size=50),
-        plot.title = element_text(size=50),
-        axis.text.x = element_text(face="bold", color="black", 
-                                   size=34, angle = 90,
-                                   hjust = 0.3,
-                                   vjust = 0.2,),
-        axis.title.x=element_blank(),
-        axis.title.y=element_blank(),
-        axis.text.y = element_text(face="bold", color="black", 
-                                   size=34))+
-  ggtitle(titleText)
+# A function to change the names of DEGs in a list from A.dn, C1.up to 
+# (t.A).DEG.dn and (t.C1).DEP.up etc
+DEGnames = function(degs, dataType = "t", diffExpr = "DEG")
+{
+  for (i in 1:length(degs))
+  {
+    text = str_split(names(degs)[i], "\\.", n = Inf, simplify = FALSE)
+    text[[1]][1] = paste("(",dataType,".", text[[1]][1], ").", sep = "")
+    text[[1]][2] = paste(diffExpr, text[[1]][2], sep = ".")
+    text = paste(text[[1]][1],text[[1]][2], sep = "")
+    names(degs)[[i]] = text
+  }
+  return(degs)
+}
+# This is a way to fix overlapping legend title and numbers
+# The legend had some overlaps between the text and the numbers so we are 
+# moving the text a bit higher
+# guides(fill = guide_colourbar(title.position = "top",
+#                               title.vjust = 3,
+#                               label.position = "left"))+
