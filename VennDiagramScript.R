@@ -2,7 +2,7 @@
 rm(list = ls())
 
 setwd("C:/Users/Marjan Ilkov/OneDrive - The Mount Sinai Hospital/Desktop/papers/20230302_ad_multiomic_subtyping/fig3")
-source("C:/Users/Marjan Ilkov/OneDrive - The Mount Sinai Hospital/Desktop/MSSM/marjanRfunctions.R")
+source("C:/Users/Marjan Ilkov/OneDrive - The Mount Sinai Hospital/Desktop/MSSM/sinaiRepo/marjanRfunctions.R")
 
 library(ggVennDiagram)
 library(ggrepel)
@@ -43,5 +43,5 @@ ggVennDiagram(degs,
   scale_fill_gradient(low = "#F4FAFE", high = ifelse(tmpChar == "dn",  "#4981BF", "red"))+
   scale_x_continuous(expand = expansion(mult = .23))
 
-ggsave(paste(dataMod,tmpChar,".Venn.",ifelse(set.Names=="y", "YESnames", "NOnames" ),".png", sep = ""), width = 50, height = 40, units = "cm",limitsize = F)
+#ggsave(paste(dataMod,tmpChar,".Venn.",ifelse(set.Names=="y", "YESnames", "NOnames" ),".png", sep = ""), width = 50, height = 40, units = "cm",limitsize = F)
 

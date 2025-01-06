@@ -44,20 +44,35 @@ uniqListPURE = function(listObj){
 ################################################################################
 # The intersect() function finds the pairwise intersections between all vectors in a list
 # and returns another list with the results
+# multiIntersect = function(listObj){
+#   intersectList = list()
+#   for (i in names(listObj))
+#   {
+#     for (j in names(listObj))
+#     {
+#       if(i!=j)
+#       {
+#         intersectList[[paste(i,j, sep = ".")]] = intersect(listObj[[i]], listObj[[j]])
+#       }
+#     }
+#   }
+#   return(intersectList)
+# }
 multiIntersect = function(listObj){
   intersectList = list()
-  for (i in names(listObj))
+  for (i in 1:(length(listObj)-1))
   {
-    for (j in names(listObj))
+    for (j in (i+1):(length(listObj)))
     {
       if(i!=j)
       {
-        intersectList[[paste(i,j, sep = ".")]] = intersect(listObj[[i]], listObj[[j]])
+        intersectList[[paste(names(listObj[i]),names(listObj[j]), sep = ".")]] = intersect(listObj[[i]], listObj[[j]])
       }
     }
   }
   return(intersectList)
 }
+
 ################################################################################
 
 # A function which takes as an input the results from the supertest() function 
@@ -75,10 +90,7 @@ sigIntersectList = function(sTest)
   sTestSig$set = deBarcode(sTestSig$barcode, sTest$set.names)
   sTestSig = sTestSig[complete.cases(sTestSig),]
   sTestSig = sTestSig[sTestSig$P.value<0.05,]
-  
-  i = 3
-  j = 1
-  
+ 
   intersectList = list()
   setNames = character()
   for (i in 1:nrow(sTestSig))
@@ -233,7 +245,7 @@ depTableToNamesList = function(deps, FC.cutoff = 1.2, p.val.cutoff = 0.05)
   {
     tmp1 = deps[[i]]
     tmp1.u = rownames(tmp1[tmp1$logFC > log2(FC.cutoff) & tmp1$adj.P.Val<p.val.cutoff,])
-    tmp1.d = rownames(tmp1[tmp1$logFC < -log2(FC.cutoff) & tmp1$adj.P.Val<p.val.cutoff,])
+    tmp1.d = rownames(tmp1[tmp1$logFC < log2(1/FC.cutoff) & tmp1$adj.P.Val<p.val.cutoff,])
     deps.res[[paste(i, ".up", sep = "")]] = tmp1.u
     deps.res[[paste(i, ".dn", sep = "")]] = tmp1.d
   }
@@ -288,3 +300,86 @@ DEGnames = function(degs, dataType = "t", diffExpr = "DEG")
 # guides(fill = guide_colourbar(title.position = "top",
 #                               title.vjust = 3,
 #                               label.position = "left"))+
+
+
+
+# A function that takes as na input the DEG tables in a list and produces a list 
+# of degs based on FC and p.val, as well as their unique, and intersection genes
+# This new version avoids commutations (intersect between a, b and b, a)
+DEGmachine = function(deg, FC.cutoff = 1.2, p.val.cutoff = 0.05)
+{
+  ################################################################################
+  # extract the unique symbols and intersections
+  degList = depTableToNamesList(deg, FC.cutoff = FC.cutoff, p.val.cutoff = p.val.cutoff)
+
+  # we need to keep the original deglist for later, so we make a copy
+  degListTmp = degList
+  # extract the unique genes and dump everithing in one list. When we search for unique
+  # genes we only compare all the downreg gene sets among themselves and the 
+  # upreg amongst themselves. We do not mix. Ask Bin why
+  options(warn=-1)
+  rm(uniq.d, uniq.u)
+  options(warn=0)
+  # We will not use any DEGs with contrasts involving MCI or NC to find unique symbols
+  degListTmp = degListTmp[!grepl("MCI", names(degListTmp))]
+  degListTmp = degListTmp[!grepl("NC", names(degListTmp))]
+
+  # The way the situation is set up now we can have a contrast not just between 
+  # cases and controls (ex. blue.ctrl) but also cases of one subtype VS cases of 
+  # another subtype (ex. blue.turq). We don't want the latter case to be involved 
+  # in the unique symbol identification because unique identification should give 
+  # us the symbols unique to each subtype and that means DEGs extracted through 
+  # only cases VS controls not case1 vs case2. So we will remove any situation 
+  # where control is not a contrast
+  # degListTmp = degListTmp[grepl("ctrl", names(degListTmp))]
+  # In this particular case we have only one such subtype.vs.subtype contrast and 
+  # we will remove it directly
+  degListTmp = degListTmp[!grepl("turq.blue", names(degListTmp))]
+
+
+  # Split the list into two lists of up and down regulated DEG/P sets
+  uniq.d = degListTmp[grepl("\\.dn", names(degListTmp))]
+  uniq.u = degListTmp[grepl("\\.up", names(degListTmp))]
+
+  # extract the unique symbols
+  uniq.d = uniqListPURE(uniq.d)
+  uniq.u = uniqListPURE(uniq.u)
+
+  # We also want to have the intersections
+  deg.intersect = multiIntersect(degListTmp)
+
+  degList = c(degList, uniq.u, uniq.d, deg.intersect)
+  # and finally, remove empty elements from the list
+  degList = degList[lapply(degList,length)>0] ## you can use sapply,rapply
+  # library(stringi)
+  # x = stri_list2matrix(degList, byrow=F)
+  # colnames(x) = names(degList)
+  # openxlsx::write.xlsx(x, "t.DEP.xlsx")
+  return(degList)
+}
+
+# an R package wrapper function to search PubMed for papers talking about 
+# AD/Dementia/Ageing AND a given gene of interest. 
+library(bayesbio)
+library(easyPubMed)
+extractPubMedIDs <- function(rowTerms, colTerms) {
+  ## rowTerms: terms to be searched for rows of matrix, e.g. gene symbols, drug names 
+  ## colTerms: terms to be searched for columns of matrix, e.g. disease names, conditions
+  
+  l1 <- length(rowTerms)
+  l2 <- length(colTerms)
+  QryRes <- matrix("", l1,l2)
+  Counts <- matrix(0, l1,l2)
+  for (i in 1:l1) {
+    for (j in 1:l2) {
+      pubQry <- get_pubmed_ids(paste(rowTerms[i],"[Text Word] AND ", colTerms[j],"[Text Word]", sep = ""))
+      QryRes[i,j] <- paste(unlist(pubQry$IdList),collapse="; ")
+      Counts[i,j] <- pubQry$Count
+    }
+  }
+  colnames(QryRes) <- paste(colTerms, "PMIDs", sep="_")
+  colnames(Counts) <- paste(colTerms, "Count", sep="_")
+  rownames(QryRes) <- rowTerms
+  rownames(Counts) <- rowTerms
+  return(data.frame(Counts,QryRes))
+}

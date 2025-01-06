@@ -34,7 +34,7 @@ result_weight1 = GOtest(x = tmp1,
                             method = 'hypergeometric',
                             ncores = (detectCores(all.tests = FALSE, logical = TRUE) -1) )
 
-write.table(result_weight1,paste(names(sigList)[i],".GO.tsv", sep = ""), sep="\t", quote=F, row.names=F)
+#write.table(result_weight1,paste(names(sigList)[i],".GO.tsv", sep = ""), sep="\t", quote=F, row.names=F)
 
 # plot the GO terms
 filelist_x = list.files(wkdir, pattern = ".tsv")
@@ -43,13 +43,13 @@ n_pathways = 5
 library(ggplot2)
 library(scales)
 library(forcats)
+f_name = "preNat.GO.tsv"
 
 plotting = read.delim(f_name)
 plotting = plotting[1:n_pathways,]
 graph = ggplot(data = plotting, aes(x = fct_rev(fct_reorder(GOsets, -log10(P.adj))), y = -log10(P.adj), color = System)) + geom_col() + labs(x = NULL)
 graph + coord_flip()
 
-f_name = "preNat.GO.tsv"
 # for clusters
 #for(f_name in filelist_x)
 #{

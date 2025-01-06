@@ -6,7 +6,8 @@
 
 library('biomaRt')
 mart <- useDataset("hsapiens_gene_ensembl", useMart("ensembl"))
-G_list <- getBM(attributes= c("ensembl_gene_id_version", "hgnc_symbol", "uniprotswissprot"), mart= mart)
+G_list <- getBM(attributes= c("ensembl_gene_id_version", "hgnc_symbol"), mart= mart)
+saveRDS(G_list, "ensebleTOsymbol.List.RDS")
 # If we need the ensembl version we can use 
  # G_list <- getBM(attributes= c("ensembl_gene_id_version", "hgnc_symbol"), mart= mart)
 
