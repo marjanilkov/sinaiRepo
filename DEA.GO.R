@@ -13,20 +13,22 @@ library(VennDiagram)
 library(ggVennDiagram)
 library(ggplot2)
 library(scales)
-source("/Users/Marjan Ilkov/OneDrive - The Mount Sinai Hospital/Desktop/MSSM/marjanRfunctions.R")
-#source("https://raw.githubusercontent.com/marjanilkov/sinaiRepo/refs/heads/main/marjanRfunctions.R")
+# We will load the marjanRfunctions.R set of functions directly from github from now on
+devtools::source_url("https://raw.githubusercontent.com/marjanilkov/sinaiRepo/refs/heads/main/marjanRfunctions.R")
 ################################################################################
 # Variables set by the user
-setwd("C:/Users/Marjan Ilkov/OneDrive - The Mount Sinai Hospital/Desktop/MSSM/2024/20240311_csf_ad/DEA/")
+setwd("C:/Users/Marjan Ilkov/OneDrive - The Mount Sinai Hospital/Desktop/MSSM/2025/20250415_scz/wina.clust/wina.MPP/gene.beta1/")
 
 p.val_cutoff =0.05
-FC_cutoff = 1.2
-tissue = "CSF"
+FC_cutoff = 1.1
+tissue = "DLPFC"
 ################################################################################
-# Read in and transform the data
-datExpr <- readRDS("C:/Users/Marjan Ilkov/OneDrive - The Mount Sinai Hospital/Desktop/MSSM/2024/20240311_csf_ad/data/CSF.prot.20percentNAs.adj.RDS")
-classification = readRDS("C:/Users/Marjan Ilkov/OneDrive - The Mount Sinai Hospital/Desktop/MSSM/2024/20240311_csf_ad/data/meta.RDS")
+# Read in the data
+datExpr <- readRDS("C:/Users/Marjan Ilkov/OneDrive - The Mount Sinai Hospital/Desktop/MSSM/2025/20250415_scz/data/mRNAseq.CM.Dx.MPP.adj.RDS")
+classification = readRDS("C:/Users/Marjan Ilkov/OneDrive - The Mount Sinai Hospital/Desktop/MSSM/2025/20250415_scz/data/Metadata/MPP.metadata.w.subtypes.RDS")
 
+# have the name of the column with clusters called "cluster"
+colnames(classification)[ncol(classification)] = "cluster"
 modSize = ncol(datExpr)
 datExpr = datExpr[complete.cases(datExpr),]
 
@@ -73,7 +75,7 @@ eval(parse(text = contrastForm))
 vfit <- contrasts.fit(fit, contr)
 efit <- eBayes(vfit)
 
-summary(decideTests(efit, p.value = p.val_cutoff, lfc = FC_cutoff))
+summary(decideTests(efit, p.value = p.val_cutoff, lfc = log2(FC_cutoff)))
 # autoamtically execute created formulas
 eval(parse(text = topTableForm))
 
@@ -176,4 +178,4 @@ for ( i in 1:length(tmp0))
   }
 }
 
-saveRDS(enrichList, paste(tissue, ".GOterms.RDS", sep = ""))
+#saveRDS(enrichList, paste(tissue, ".GOterms.RDS", sep = ""))
