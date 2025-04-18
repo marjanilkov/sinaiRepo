@@ -331,24 +331,28 @@ DEGmachine = function(deg, FC.cutoff = 1.2, p.val.cutoff = 0.05)
   # us the symbols unique to each subtype and that means DEGs extracted through 
   # only cases VS controls not case1 vs case2. So we will remove any situation 
   # where control is not a contrast
-  # degListTmp = degListTmp[grepl("ctrl", names(degListTmp))]
+  degListTmp = degListTmp[grepl("ctrl", names(degListTmp))]
   # In this particular case we have only one such subtype.vs.subtype contrast and 
   # we will remove it directly
-  degListTmp = degListTmp[!grepl("turq.blue", names(degListTmp))]
+  #degListTmp = degListTmp[!grepl("blue.turq", names(degListTmp))]
 
 
   # Split the list into two lists of up and down regulated DEG/P sets
   uniq.d = degListTmp[grepl("\\.dn", names(degListTmp))]
   uniq.u = degListTmp[grepl("\\.up", names(degListTmp))]
 
-  # extract the unique symbols
+  # extract the unique symbols  per direction
   uniq.d = uniqListPURE(uniq.d)
   uniq.u = uniqListPURE(uniq.u)
-
+  names(uniq.d) = paste(names(uniq.d), ".dir", sep = "")
+  names(uniq.u) = paste(names(uniq.u), ".dir", sep = "")
+  # extract the unique symbols regardless of direction
+  uniq = uniqListPURE(degListTmp)
+  
   # We also want to have the intersections
   deg.intersect = multiIntersect(degListTmp)
 
-  degList = c(degList, uniq.u, uniq.d, deg.intersect)
+  degList = c(degList, uniq, uniq.u, uniq.d, deg.intersect)
   # and finally, remove empty elements from the list
   degList = degList[lapply(degList,length)>0] ## you can use sapply,rapply
   # library(stringi)
