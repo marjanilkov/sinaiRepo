@@ -387,3 +387,15 @@ extractPubMedIDs <- function(rowTerms, colTerms) {
   rownames(Counts) <- rowTerms
   return(data.frame(Counts,QryRes))
 }
+
+################################################################################
+# Sometimes ENSEMBL genes have a version at the end. When we have a list of 
+# different sets of ENSEMBL genes with version attached, this function removes that
+version.remove = function(list.object)
+{
+  for (i in names(list.object))
+  {
+    list.object[[i]] = gsub("\\..*","",list.object[[i]])
+  }
+  return(list.object)
+}
