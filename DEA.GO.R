@@ -39,7 +39,7 @@ classification = classification[rownames(classification) %in% commonID,]
 datExpr = datExpr[rownames(datExpr) %in% commonID,]
 
 ################################################################################
-# DEA
+# DEA clusters
 clusters = unique(classification$cluster)
 design = model.matrix(~0+cluster, data=classification) 
 colnames(design) = gsub("cluster", "", colnames(design))
@@ -89,7 +89,60 @@ eval(parse(text = degForm))
 # and control to ctrl
 names(deg) = gsub("turquoise", "turq", names(deg))
 names(deg) = gsub("control", "ctrl", names(deg))
-#saveRDS(deg, paste(tissue,".DEP.RDS", sep = ""))
+################################################################################
+# We will add also the DEGs from the overall cases VS controls
+classification$case.ctrl = ifelse(classification$cluster != "control", "case", classification$cluster)
+clusters = unique(classification$case.ctrl)
+design = model.matrix(~0+case.ctrl, data=classification) 
+colnames(design) = gsub("case.ctrl", "", colnames(design))
+fit = lmFit(as.data.frame(t(datExpr)), design) #fit all groups together!
+
+# We will automate the makeContrasts function. Have the control cluster always 
+# at the end of the vector
+tmpClust = colnames(design)
+tmpClust = tmpClust[!tmpClust %in% c("control")]
+tmpClust = c(tmpClust, "control")
+
+# make a combo of all clusters
+tmpDesign = t(combn(tmpClust, 2))
+
+# autoamtically create a text for the makeContrasts function
+contrastForm = NULL
+topTableForm = NULL
+degForm = NULL
+
+i=1
+
+for (i in 1:nrow(tmpDesign))
+{
+  print(i)
+  contrastForm = paste(contrastForm, tmpDesign[i,1],".",tmpDesign[i,2], " = ", tmpDesign[i,1]," - ",tmpDesign[i,2],",",sep = "")
+  topTableForm = paste(topTableForm, tmpDesign[i,1],".",tmpDesign[i,2], " = topTable(efit, coef = '", tmpDesign[i,1],".",tmpDesign[i,2], "', number = Inf );",sep = "")
+  degForm = paste(degForm, tmpDesign[i,1],".",tmpDesign[i,2] , "=", tmpDesign[i,1],".",tmpDesign[i,2] , ",", sep = "")
+}
+
+contrastForm = paste("contr <- makeContrasts(",contrastForm,"levels = colnames(coef(fit)))", sep = "")
+eval(parse(text = contrastForm))
+
+vfit <- contrasts.fit(fit, contr)
+efit <- eBayes(vfit)
+
+summary(decideTests(efit, p.value = p.val_cutoff, lfc = log2(FC_cutoff)))
+# autoamtically execute created formulas
+eval(parse(text = topTableForm))
+
+degForm = paste("deg.case.ctrl = list(", degForm, ")", sep = "")
+# remove the last comma
+library(stringi)
+degForm = stri_replace_last(degForm, fixed = ',', '')
+eval(parse(text = degForm))
+
+# To reduce the names of deg elements we will reduce the name TURQUOISE to TURQ
+# and control to ctrl
+names(deg.case.ctrl) = gsub("control", "ctrl", names(deg.case.ctrl))
+
+deg = c(deg, deg.case.ctrl)
+#saveRDS(deg, paste(tissue,".DEG.RDS", sep = ""))
 
 ################################################################################
 # extract the unique symbols and intersections
