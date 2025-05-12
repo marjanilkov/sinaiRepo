@@ -17,15 +17,15 @@ library(scales)
 devtools::source_url("https://raw.githubusercontent.com/marjanilkov/sinaiRepo/refs/heads/main/marjanRfunctions.R")
 ################################################################################
 # Variables set by the user
-setwd("C:/Users/Marjan Ilkov/OneDrive - The Mount Sinai Hospital/Desktop/MSSM/2025/20250415_scz/wina.clust/wina.MPP/gene.beta1/")
+setwd("C:/Users/Marjan Ilkov/OneDrive - The Mount Sinai Hospital/Desktop/MSSM/2025/20250505_asd/clust/wina.BA9.UCLA.bulkRNAseq/gene.beta1/")
 
 p.val_cutoff =0.05
-FC_cutoff = 1.1
+FC_cutoff = 1.5
 tissue = "DLPFC"
 ################################################################################
 # Read in the data
-datExpr <- readRDS("C:/Users/Marjan Ilkov/OneDrive - The Mount Sinai Hospital/Desktop/MSSM/2025/20250415_scz/data/mRNAseq.CM.Dx.MPP.adj.RDS")
-classification = readRDS("C:/Users/Marjan Ilkov/OneDrive - The Mount Sinai Hospital/Desktop/MSSM/2025/20250415_scz/data/Metadata/MPP.metadata.w.subtypes.RDS")
+datExpr <- readRDS("C:/Users/Marjan Ilkov/OneDrive - The Mount Sinai Hospital/Desktop/MSSM/2025/20250505_asd/data/UCLA-ASD/bulk_rnaSeq/limma.BA9/ucla.RNAseq.BA9.adj.RDS")
+classification = readRDS("C:/Users/Marjan Ilkov/OneDrive - The Mount Sinai Hospital/Desktop/MSSM/2025/20250505_asd/clust/wina.BA9.UCLA.bulkRNAseq/gene.beta1/ucla.BA9.metadata.w.subtypes.RDS")
 
 # have the name of the column with clusters called "cluster"
 colnames(classification)[ncol(classification)] = "cluster"
@@ -141,48 +141,13 @@ eval(parse(text = degForm))
 # and control to ctrl
 names(deg.case.ctrl) = gsub("control", "ctrl", names(deg.case.ctrl))
 
-deg = c(deg, deg.case.ctrl)
-#saveRDS(deg, paste(tissue,".DEG.RDS", sep = ""))
 
-################################################################################
-# extract the unique symbols and intersections
-degList = depTableToNamesList(deg, FC.cutoff = FC_cutoff, p.val.cutoff = p.val_cutoff)
+# saveRDS(deg, paste(tissue,".DEG.RDS", sep = ""))
+degList = DEGmachine(deg[2:3], FC.cutoff = 1.5)
+degList.case.ctrl = DEGmachine(deg.case.ctrl, FC.cutoff = 1.5)
+degList.case.ctrl = degList.case.ctrl[1:2]
 
-# we need to keep the original deglist for later, so we make a copy
-degListTmp = degList
-# extract the unique genes and dump everithing in one list. When we search for unique
-# genes we only compare all the downreg gene sets among themselves and the 
-# upreg amongst themselves. We do not mix. Ask Bin why
-rm(uniq.d, uniq.u)
-
-# We will not use any DEGs with contrasts involving MCI or NC to find unique symbols
-degListTmp = degListTmp[!grepl("MCI", names(degListTmp))]
-degListTmp = degListTmp[!grepl("NC", names(degListTmp))]
-
-# The way the situation is set up now we can have a contrast not just between 
-# cases and controls (ex. blue.ctrl) but also cases of one subtype VS cases of 
-# another subtype (ex. blue.turq). We don't want the latter case to be involved 
-# in the unique symbol identification because unique identification should give 
-# us the symbols unique to each subtype and that means DEGs extracted through 
-# only cases VS controls not case1 vs case2. So we will remove any situation 
-# where control is not a contrast
-degListTmp = degListTmp[grepl("ctrl", names(degListTmp))]
-
-# Split the list into two lists of up and down regulated DEG/P sets
-uniq.d = degListTmp[grepl("\\.D", names(degListTmp))]
-uniq.u = degListTmp[grepl("\\.U", names(degListTmp))]
-
-# extract the unique symbols
-uniq.d = uniqListPURE(uniq.d)
-uniq.u = uniqListPURE(uniq.u)
-
-# We also want to have the intersections
-deg.intersect = multiIntersect(degListTmp)
-
-degList = c(degList, uniq.u, uniq.d, deg.intersect)
- # and finally, remove empty elements from the list
-degList = degList[lapply(degList,length)>0] ## you can use sapply,rapply
-
+degList = c(degList.case.ctrl, degList)
 ################################################################################
 # F U N C T I O N A L    A N A L Y S I S 
 ################################################################################
@@ -193,6 +158,10 @@ library(msigdb) ##from minghui
 GOsets = c('c5.go.bp','c5.go.cc', 'c5.go.mf')
 gosets_genes = msigdb.genesets(sets=GOsets, type='symbols', species='human',return.data.frame=T)
 universe = curated.genesets(c('HGNC_universe'))$Gene
+
+# The names of genes now are in ENSEMBL, we will transform them to symbols
+mapping <- readRDS("C:/Users/Marjan Ilkov/OneDrive - The Mount Sinai Hospital/Desktop/MSSM/2025/20250505_asd/data/UCLA-ASD/bulk_rnaSeq/UCLA_ASD_bulk_rnaSeq.RDS")
+mapping = mapping[,1:2]
 
 enrichList = list()
 
@@ -210,7 +179,9 @@ for ( i in 1:length(tmp0))
   {
     # make it into a data frame for the same of the function working properly
     tmp1 = data.frame(tmp1, "group")
-    # tmp1 = tmp1[,c("SYMBOL", "X.group.")]
+    tmp1 = merge(mapping, tmp1, by.x = "Geneid", by.y = "tmp1")
+    
+    tmp1 = tmp1[,c("Symbol", "X.group.")]
     colnames(tmp1) = c("gene","group")
     
     result_weight1 = GOtest(x = tmp1,
@@ -231,4 +202,4 @@ for ( i in 1:length(tmp0))
   }
 }
 
-#saveRDS(enrichList, paste(tissue, ".GOterms.RDS", sep = ""))
+saveRDS(enrichList, paste(tissue, ".GOterms.RDS", sep = ""))
