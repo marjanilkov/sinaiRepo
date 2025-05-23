@@ -399,3 +399,20 @@ version.remove = function(list.object)
   }
   return(list.object)
 }
+
+
+deg.gene.2.ensembl = function(deg)
+{
+  for (i in names(deg))
+  {
+    tmp1 = deg[[i]]
+    tmp1$symbol = rownames(tmp1)
+    # Load a list to transform the ENSEMBL names to symbols and vice versa
+    G_list = read.delim2("C:/Users/Marjan Ilkov/OneDrive - The Mount Sinai Hospital/Desktop/MSSM/2024/20240305_scz/data/knownGenes.geneid.tsv", header = F)
+    colnames(G_list) = c("ENSEMBL.ID", "gene.symbol", "chr", "start", "end", "sign", "description")
+    tmp1 = merge(tmp1, G_list, by.x = "symbol", by.y = "gene.symbol")
+    rownames(tmp1) = tmp1$ENSEMBL.ID
+    deg[[i]] = tmp1
+  }
+  return(deg)
+}
