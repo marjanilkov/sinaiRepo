@@ -416,3 +416,17 @@ deg.gene.2.ensembl = function(deg)
   }
   return(deg)
 }
+
+# if there is a list with genes in ENSEMBL format it will transform them to Gene Symbol
+list.ensembl.2.gene = function(gene.list)
+{
+  for ( i in names(gene.list))
+  {
+    tmp1 = as.data.frame(gene.list[[i]])
+    colnames(tmp1)[1] = "ENSEMBLid"
+    tmp1 = merge(tmp1, ensembl.2.gene, by.x = "ENSEMBLid", by.y = "Geneid")
+    tmp1 = tmp1[!(is.na(tmp1$Symbol)),]
+    gene.list[[i]] = tmp1$Symbol
+  }
+  return(gene.list)
+}
