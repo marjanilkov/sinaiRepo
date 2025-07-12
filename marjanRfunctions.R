@@ -427,7 +427,7 @@ list.ensembl.2.gene = function(gene.list)
     # Load a list to transform the ENSEMBL names to symbols and vice versa
     G_list = read.delim2("C:/Users/Marjan Ilkov/OneDrive - The Mount Sinai Hospital/Desktop/MSSM/2024/20240305_scz/data/knownGenes.geneid.tsv", header = F)
     colnames(G_list) = c("ENSEMBL.ID", "gene.symbol", "chr", "start", "end", "sign", "description")
-    tmp1 = merge(tmp1, ensembl.2.gene, by.x = "ENSEMBLid", by.y = "Geneid")
+    tmp1 = merge(tmp1, G_list, by.x = "ENSEMBL.ID", by.y = "Geneid")
     tmp1 = tmp1[!(is.na(tmp1$Symbol)),]
     gene.list[[i]] = tmp1$Symbol
   }
