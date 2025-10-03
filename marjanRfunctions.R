@@ -433,3 +433,40 @@ list.ensembl.2.gene = function(gene.list)
   }
   return(gene.list)
 }
+
+# Replace column names in df_data using df_map
+replace_column_names <- function(df_data, df_map) {
+  # Create a named vector for mapping
+  ensembl_to_symbol <- setNames(df_map$Symbol, df_map$Geneid)
+  
+  # Replace column names if they exist in the mapping
+  colnames(df_data) <- ifelse(
+    colnames(df_data) %in% names(ensembl_to_symbol),
+    ensembl_to_symbol[colnames(df_data)],
+    colnames(df_data)  # keep original if no match
+  )
+  
+  return(df_data)
+}
+
+# Copy paste this code to plot barplots
+################################################################################
+# Proportion of sex in subtypes + control
+p = ggplot(data=counts, aes(x=subtype, y=percentage, fill = sex, color = sex)) +
+  geom_bar(stat="identity", width = .7)+
+  scale_color_manual(values = c("black", "black"))+
+  scale_fill_manual(values=c("coral", "steelblue"))+
+  theme_classic()+
+  xlab("SCZ subtype")+
+  ylab("%")+
+  theme( axis.text.x = element_text(size=font.size, colour = "black"),
+         axis.text.y = element_text(size=font.size, colour = "black"),
+         text = element_text(size=font.size))
+ggsave('samples.percentage.png', 
+       egg::set_panel_size(p, 
+                           width=unit(2, "in"), 
+                           height=unit(2, "in")), 
+       width = 4, 
+       height = 4, 
+       units = 'in', 
+       dpi = 300)
