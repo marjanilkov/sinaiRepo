@@ -433,3 +433,18 @@ list.ensembl.2.gene = function(gene.list)
   }
   return(gene.list)
 }
+
+# Replace column names in df_data using df_map
+replace_column_names <- function(df_data, df_map) {
+  # Create a named vector for mapping
+  ensembl_to_symbol <- setNames(df_map$Symbol, df_map$Geneid)
+  
+  # Replace column names if they exist in the mapping
+  colnames(df_data) <- ifelse(
+    colnames(df_data) %in% names(ensembl_to_symbol),
+    ensembl_to_symbol[colnames(df_data)],
+    colnames(df_data)  # keep original if no match
+  )
+  
+  return(df_data)
+}
