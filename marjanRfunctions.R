@@ -447,30 +447,26 @@ replace_column_names <- function(df_data, df_map) {
   )
   
   return(df_data)
-<<<<<<< HEAD
 }
 
 # Copy paste this code to plot barplots
 ################################################################################
 # Proportion of sex in subtypes + control
-p = ggplot(data=counts, aes(x=subtype, y=percentage, fill = sex, color = sex)) +
-  geom_bar(stat="identity", width = .7)+
-  scale_color_manual(values = c("black", "black"))+
-  scale_fill_manual(values=c("coral", "steelblue"))+
-  theme_classic()+
-  xlab("SCZ subtype")+
-  ylab("%")+
-  theme( axis.text.x = element_text(size=font.size, colour = "black"),
-         axis.text.y = element_text(size=font.size, colour = "black"),
-         text = element_text(size=font.size))
-ggsave('samples.percentage.png', 
-       egg::set_panel_size(p, 
-                           width=unit(2, "in"), 
-                           height=unit(2, "in")), 
-       width = 4, 
-       height = 4, 
-       units = 'in', 
-       dpi = 300)
-=======
-}
->>>>>>> 19588c8a3edd5fa538b93b41bb77cf1a8c9fa72e
+# p = ggplot(data=counts, aes(x=subtype, y=percentage, fill = sex, color = sex)) +
+#   geom_bar(stat="identity", width = .7)+
+#   scale_color_manual(values = c("black", "black"))+
+#   scale_fill_manual(values=c("coral", "steelblue"))+
+#   theme_classic()+
+#   xlab("SCZ subtype")+
+#   ylab("%")+
+#   theme( axis.text.x = element_text(size=font.size, colour = "black"),
+#          axis.text.y = element_text(size=font.size, colour = "black"),
+#          text = element_text(size=font.size))
+# ggsave('samples.percentage.png', 
+#        egg::set_panel_size(p, 
+#                            width=unit(2, "in"), 
+#                            height=unit(2, "in")), 
+#        width = 4, 
+#        height = 4, 
+#        units = 'in', 
+#        dpi = 300)
