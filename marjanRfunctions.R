@@ -445,7 +445,6 @@ replace_column_names <- function(df_data, df_map) {
     ensembl_to_symbol[colnames(df_data)],
     colnames(df_data)  # keep original if no match
   )
-  
   return(df_data)
 }
 
