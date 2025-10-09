@@ -447,6 +447,7 @@ replace_column_names <- function(df_data, df_map) {
   )
   
   return(df_data)
+<<<<<<< HEAD
 }
 
 # Copy paste this code to plot barplots
@@ -470,3 +471,6 @@ ggsave('samples.percentage.png',
        height = 4, 
        units = 'in', 
        dpi = 300)
+=======
+}
+>>>>>>> 19588c8a3edd5fa538b93b41bb77cf1a8c9fa72e
