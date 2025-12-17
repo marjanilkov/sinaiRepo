@@ -448,6 +448,117 @@ replace_column_names <- function(df_data, df_map) {
   return(df_data)
 }
 
+# Pairwise enrichment between list elements (DE lists vs module lists)
+pairwise_enrichment <- function(degs,
+                                modules,
+                                N = NULL,                 # numeric universe size
+                                universe = NULL,          # character vector of background IDs
+                                alternative = "greater",  # enrichment direction
+                                adjust.method = "BH",
+                                min_overlap = 1) {        # filter: only report pairs with >= this overlap
+  
+  # ---- Input checks ----
+  if (is.null(N) && is.null(universe)) {
+    stop("Provide either numeric N (background size) OR a universe vector of IDs.")
+  }
+  
+  # Normalize names
+  if (is.null(names(degs)))    names(degs)    <- paste0("degs_", seq_along(degs))
+  if (is.null(names(modules))) names(modules) <- paste0("module_", seq_along(modules))
+  
+  # If a universe vector is supplied, clip sets to this background and derive N
+  if (!is.null(universe)) {
+    U <- unique(universe)
+    N <- length(U)
+    # Intersect sets with U to keep only valid background items
+    degs    <- lapply(degs,    function(x) unique(intersect(x, U)))
+    modules <- lapply(modules, function(x) unique(intersect(x, U)))
+  } else {
+    U <- NULL  # purely numeric background
+    # Make sets unique to avoid double-counting overlaps
+    degs    <- lapply(degs,    unique)
+    modules <- lapply(modules, unique)
+  }
+  
+  # ---- Computation ----
+  out <- vector("list", length(degs) * length(modules))
+  idx <- 1L
+  
+  for (i in seq_along(degs)) {
+    A <- degs[[i]]
+    a <- length(A) # size of DE set
+    for (j in seq_along(modules)) {
+      B <- modules[[j]]
+      b <- length(B) # size of Module set
+      k <- length(intersect(A, B)) # overlap
+      
+      # Skip low overlaps if requested
+      if (k < min_overlap) {
+        out[[idx]] <- data.frame(
+          deg_set = names(degs)[i], module_set = names(modules)[j],
+          a_deg = a, b_module = b, k_overlap = k, N_universe = N,
+          expected_overlap = (a * b) / N,
+          enrichment_ratio = ifelse((a * b) > 0, k / ((a * b) / N), NA_real_),
+          fisher_p = NA_real_, hyper_p = NA_real_, odds_ratio = NA_real_
+        )
+        idx <- idx + 1L
+        next
+      }
+      
+      # 2x2 table components (must be >= 0)
+      m11 <- k
+      m12 <- a - k
+      m21 <- b - k
+      m22 <- N - a - b + k
+      
+      # Guard: if you only supplied numeric N, ensure the table is valid
+      valid_table <- all(c(m11, m12, m21, m22) >= 0)
+      
+      if (!valid_table) {
+        # This happens when N is too small relative to set sizes.
+        # Prefer supplying a universe vector to avoid this.
+        p_fisher <- NA_real_
+        or <- NA_real_
+      } else {
+        mat <- matrix(c(m11, m12, m21, m22), nrow = 2, byrow = TRUE,
+                      dimnames = list(c("DE", "NotDE"), c("Module", "NotModule")))
+        ft <- suppressWarnings(fisher.test(mat, alternative = alternative))
+        p_fisher <- ft$p.value
+        or <- unname(ft$estimate)  # odds ratio
+      }
+      
+      # Hypergeometric (equivalent to one-sided Fisher for enrichment)
+      # P(X >= k) where X ~ Hypergeom(m=b successes in N, draw k=a)
+      hyper_p <- if (valid_table) {
+        phyper(q = k - 1, m = b, n = N - b, k = a, lower.tail = FALSE)
+      } else {
+        NA_real_
+      }
+      
+      expected <- (a * b) / N
+      out[[idx]] <- data.frame(
+        deg_set = names(degs)[i],
+        module_set = names(modules)[j],
+        a_deg = a, b_module = b, k_overlap = k, N_universe = N,
+        expected_overlap = expected,
+        enrichment_ratio = ifelse(expected > 0, k / expected, NA_real_),
+        fisher_p = p_fisher,
+        hyper_p = hyper_p,
+        odds_ratio = or
+      )
+      idx <- idx + 1L
+    }
+  }
+  
+  res <- do.call(rbind, out)
+  # Multiple-testing correction across all pairs
+  res$fisher_p_adj <- p.adjust(res$fisher_p, method = adjust.method)
+  res$hyper_p_adj  <- p.adjust(res$hyper_p,  method = adjust.method)
+  
+  # Order by strongest enrichment (smallest Fisher p)
+  res[order(res$fisher_p, na.last = TRUE), ]
+}
+
 # Copy paste this code to plot barplots
 ################################################################################
 # Proportion of sex in subtypes + control
