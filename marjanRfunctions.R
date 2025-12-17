@@ -331,7 +331,7 @@ DEGmachine = function(deg, FC.cutoff = 1.2, p.val.cutoff = 0.05)
   # us the symbols unique to each subtype and that means DEGs extracted through 
   # only cases VS controls not case1 vs case2. So we will remove any situation 
   # where control is not a contrast
-  degListTmp = degListTmp[grepl("ctrl", names(degListTmp))]
+  degListTmp = degListTmp[grepl("ctrl", names(degListTmp), ignore.case = T)]
   # In this particular case we have only one such subtype.vs.subtype contrast and 
   # we will remove it directly
   #degListTmp = degListTmp[!grepl("blue.turq", names(degListTmp))]
