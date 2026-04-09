@@ -420,16 +420,30 @@ deg.gene.2.ensembl = function(deg)
 # if there is a list with genes in ENSEMBL format it will transform them to Gene Symbol
 list.ensembl.2.gene = function(gene.list)
 {
+  
+  # ---- Progress bar: added lines ----
+  n_items <- length(gene.list)
+  pb <- utils::txtProgressBar(min = 0, max = n_items, style = 3)
+  on.exit(close(pb), add = TRUE)  # ensure the bar closes even if an error occurs
+  done <- 0L
+  # ----------------------------------
+  G_list = read.delim2("C:/Users/Marjan Ilkov/OneDrive - The Mount Sinai Hospital/Desktop/MSSM/2024/20240305_scz/data/knownGenes.geneid.tsv", header = F)
+  colnames(G_list) = c("ENSEMBL.ID", "gene.symbol", "chr", "start", "end", "sign", "description")
+  
   for ( i in names(gene.list))
   {
     tmp1 = as.data.frame(gene.list[[i]])
     colnames(tmp1)[1] = "ENSEMBLid"
     # Load a list to transform the ENSEMBL names to symbols and vice versa
-    G_list = read.delim2("C:/Users/Marjan Ilkov/OneDrive - The Mount Sinai Hospital/Desktop/MSSM/2024/20240305_scz/data/knownGenes.geneid.tsv", header = F)
-    colnames(G_list) = c("ENSEMBL.ID", "gene.symbol", "chr", "start", "end", "sign", "description")
     tmp1 = merge(tmp1, G_list, by.x = "ENSEMBLid", by.y = "ENSEMBL.ID")
     tmp1 = tmp1[!(is.na(tmp1$gene.symbol)),]
     gene.list[[i]] = tmp1$gene.symbol
+    
+    # ---- Progress bar: update counter ----
+    done <- done + 1L
+    utils::setTxtProgressBar(pb, done)
+    # --------------------------------------
+    
   }
   return(gene.list)
 }
